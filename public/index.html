@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PriceBot — Buscador de Precos</title>
+
+  <!-- Gamb Design System (variaveis definitivas) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/gamberine/.gamb_variaveis@v1.0.1/dist/gamb-design-system.min.css">
+
+  <!-- Tailwind CSS v3 Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Flaticon Uicons Thin Rounded -->
+  <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.6.0/uicons-thin-rounded/css/uicons-thin-rounded.css">
+
+  <script>
+    tailwind.config = {
+      darkMode: ['selector', '[data-theme="dark"]'],
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['var(--gamb-font-primary)'],
+            body: ['var(--gamb-font-secondary)'],
+            mono: ['var(--gamb-font-number)'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100vh;
+      font-family: var(--gamb-font-secondary);
+      background-color: var(--gamb-background);
+      color: var(--gamb-text);
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--gamb-background-muted); }
+    ::-webkit-scrollbar-thumb { background: var(--gamb-border); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gamb-primary); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulseDot { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+
+    .anim-0 { animation: fadeUp .3s ease both; }
+    .anim-1 { animation: fadeUp .3s .08s ease both; }
+    .anim-2 { animation: fadeUp .3s .16s ease both; }
+    .anim-3 { animation: fadeUp .3s .24s ease both; }
+
+    .spinner {
+      display: none; width:15px; height:15px;
+      border: 2px solid rgba(255,255,255,.2); border-top-color:#fff;
+      border-radius:50%; animation: spin .7s linear infinite; flex-shrink:0;
+    }
+    .loading .spinner { display: block; }
+    .loading .btn-label { display: none; }
+
+    .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block; }
+    .dot-idle    { background: var(--gamb-border); }
+    .dot-ok      { background: var(--gamb-success); }
+    .dot-running { background: var(--gamb-warning); animation: pulseDot 1.1s ease-in-out infinite; }
+
+    .card {
+      background: var(--gamb-surface);
+      border: 1px solid var(--gamb-border);
+      border-radius: var(--gamb-radius-2xl);
+      box-shadow: var(--gamb-shadow-default);
+      transition: var(--gamb-transition-default);
+    }
+
+    .field {
+      width:100%; background: var(--gamb-background-muted);
+      border: 1px solid var(--gamb-border);
+      border-radius: var(--gamb-radius-lg);
+      color: var(--gamb-text); font-family: var(--gamb-font-secondary);
+      font-size:.875rem; height: var(--gamb-height-control);
+      padding: 0 var(--gamb-padding-control-x); outline:none;
+      transition: var(--gamb-transition-default);
+    }
+    .field::placeholder { color: var(--gamb-text-light); }
+    .field:focus { border-color: var(--gamb-primary); box-shadow: var(--gamb-shadow-focus); }
+    textarea.field { height:auto; padding:.75rem var(--gamb-padding-control-x); resize:none; }
+    select.field { cursor:pointer; }
+
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+      font-family: var(--gamb-font-primary); font-size:.875rem; font-weight:600;
+      letter-spacing:.02em; border-radius: var(--gamb-radius-default);
+      height: var(--gamb-height-control); padding: 0 var(--gamb-padding-control-x);
+      border:none; cursor:pointer; transition: var(--gamb-transition-default);
+    }
+    .btn-primary {
+      background-image: var(--gamb-gradient-primary); color: var(--gamb-on-dark);
+      box-shadow: 0 4px 18px -6px color-mix(in oklab, var(--gamb-primary) 55%, transparent);
+    }
+    .btn-primary:hover { background: var(--gamb-primary-hover); transform: scale(1.02); }
+    .btn-ghost {
+      background:transparent; border:1px solid var(--gamb-border); color: var(--gamb-text-muted);
+    }
+    .btn-ghost:hover { background: var(--gamb-surface-hover); color: var(--gamb-text); }
+    .btn-icon { width:2.1rem; height:2.1rem; padding:0; border-radius: var(--gamb-radius-md); }
+    .btn:disabled { opacity:.5; cursor:not-allowed; transform:none !important; }
+
+    .label {
+      display:block; font-family: var(--gamb-font-secondary);
+      font-size:.68rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+      color: var(--gamb-text-muted); margin-bottom:.4rem;
+    }
+    .badge {
+      display:inline-flex; align-items:center; gap:.4rem;
+      padding:.22rem .7rem; border-radius: var(--gamb-radius-pill);
+      font-size:.68rem; font-weight:600; font-family: var(--gamb-font-secondary);
+    }
+    .badge-idle    { background:color-mix(in oklab,var(--gamb-border) 40%,transparent); color:var(--gamb-text-light); border:1px solid var(--gamb-border); }
+    .badge-ok      { background:var(--gamb-success-100); color:var(--gamb-success-700); border:1px solid var(--gamb-success-200); }
+    .badge-running { background:var(--gamb-warning-100); color:var(--gamb-warning-700); border:1px solid var(--gamb-warning-200); }
+
+    #sidebar {
+      position:fixed; inset:0 auto 0 0; width:232px;
+      background: var(--gamb-surface); border-right:1px solid var(--gamb-border);
+      display:flex; flex-direction:column; z-index:40;
+    }
+    .nav-link {
+      display:flex; align-items:center; gap:.6rem; padding:.58rem .7rem;
+      border-radius: var(--gamb-radius-lg); font-family: var(--gamb-font-secondary);
+      font-size:.8rem; color: var(--gamb-text-light); cursor:pointer;
+      border:none; border-left:2px solid transparent; background:transparent;
+      width:100%; text-align:left; transition: var(--gamb-transition-default);
+    }
+    .nav-link:hover { background: var(--gamb-surface-hover); color: var(--gamb-text); }
+    .nav-link.active { background:color-mix(in oklab,var(--gamb-primary) 10%,transparent); color:var(--gamb-primary); border-left-color:var(--gamb-primary); font-weight:600; }
+
+    #topbar {
+      position:sticky; top:0; z-index:30;
+      background: color-mix(in oklab, var(--gamb-background) 85%, transparent);
+      backdrop-filter:blur(16px); border-bottom:1px solid var(--gamb-border);
+    }
+    .topbar-line { height:2px; background-image: var(--gamb-gradient-primary); }
+
+    .page { display:none; flex-direction:column; gap:1.25rem; }
+    .page.active { display:flex; }
+
+    .data-table { width:100%; border-collapse:collapse; font-size:.8rem; }
+    .data-table th {
+      text-align:left; font-family: var(--gamb-font-secondary);
+      font-size:.62rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+      color: var(--gamb-text-light); padding:0 1rem .75rem; border-bottom:1px solid var(--gamb-border);
+    }
+    .data-table td { padding:.8rem 1rem; border-bottom:1px solid var(--gamb-border); color:var(--gamb-text-muted); }
+    .data-table tbody tr { transition:background var(--gamb-transition-speed) ease; }
+    .data-table tbody tr:hover { background: var(--gamb-surface-hover); }
+    .data-table tbody tr:last-child td { border-bottom:none; }
+
+    #login-page {
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background: radial-gradient(ellipse 90% 55% at 50% -5%, color-mix(in oklab,var(--gamb-primary) 16%,transparent) 0%, transparent 70%), var(--gamb-background);
+    }
+    #login-page.hidden { display:none; }
+    #app { display:none; min-height:100vh; }
+    #app.active { display:flex; }
+
+    .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4rem 2rem; text-align:center; gap:.7rem; }
+    .empty-icon { width:3.2rem; height:3.2rem; border-radius:var(--gamb-radius-xl); display:flex; align-items:center; justify-content:center; border:1px dashed var(--gamb-border); background:color-mix(in oklab,var(--gamb-primary) 5%,transparent); }
+
+    .plat-badge { display:inline-flex; align-items:center; gap:.3rem; padding:.18rem .55rem; border-radius:var(--gamb-radius-pill); font-size:.66rem; font-weight:600; background:color-mix(in oklab,var(--gamb-primary) 12%,transparent); color:var(--gamb-primary); border:1px solid color-mix(in oklab,var(--gamb-primary) 25%,transparent); }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-page">
+  <div style="position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(var(--gamb-border) 1px,transparent 1px),linear-gradient(90deg,var(--gamb-border) 1px,transparent 1px);background-size:52px 52px;opacity:.35;"></div>
+  <div class="relative z-10 w-full anim-0" style="max-width:370px;margin:0 auto;padding:0 1.25rem;">
+    <div style="text-align:center;margin-bottom:2rem;">
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:3.25rem;height:3.25rem;border-radius:var(--gamb-radius-xl);margin-bottom:1rem;background-image:var(--gamb-gradient-primary);box-shadow:0 8px 28px -6px color-mix(in oklab,var(--gamb-primary) 55%,transparent);">
+        <i class="fi fi-tr-search-dollar" style="font-size:20px;line-height:1;display:block;margin-top:2px;color:#fff;"></i>
+      </div>
+      <h1 style="font-family:var(--gamb-font-primary);font-size:1.65rem;font-weight:700;color:var(--gamb-text);margin:0;">PriceBot</h1>
+      <p style="color:var(--gamb-text-light);font-size:.78rem;margin:.3rem 0 0;">Buscador Dinamico de Precos</p>
+    </div>
+    <div class="card" style="padding:1.75rem;">
+      <h2 style="font-family:var(--gamb-font-primary);font-weight:700;font-size:.95rem;color:var(--gamb-text);margin:0 0 1.25rem;">Acesse sua conta</h2>
+      <div id="login-error" class="hidden" style="display:none;margin-bottom:1rem;padding:.7rem 1rem;border-radius:var(--gamb-radius-lg);background:var(--gamb-danger-50);border:1px solid var(--gamb-danger-200);color:var(--gamb-danger);font-size:.8rem;gap:.5rem;align-items:center;">
+        <i class="fi fi-tr-triangle-warning" style="font-size:13px;flex-shrink:0;"></i>
+        E-mail ou senha incorretos.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.85rem;">
+        <div>
+          <label class="label">E-mail</label>
+          <div style="position:relative;">
+            <i class="fi fi-tr-envelope" style="position:absolute;left:.9rem;top:50%;transform:translateY(-50%);font-size:13px;color:var(--gamb-text-light);pointer-events:none;"></i>
+            <input id="inp-email" type="email" placeholder="seu@email.com" class="field" style="padding-left:2.5rem;" value="gamberini@gmail.com">
+          </div>
+        </div>
+        <div>
+          <label class="label">Senha</label>
+          <div style="position:relative;">
+            <i class="fi fi-tr-lock" style="position:absolute;left:.9rem;top:50%;transform:translateY(-50%);font-size:13px;color:var(--gamb-text-light);pointer-events:none;"></i>
+            <input id="inp-pass" type="password" placeholder="••••••••" class="field" style="padding-left:2.5rem;padding-right:2.5rem;">
+            <button onclick="togglePass()" style="position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:0;color:var(--gamb-text-light);">
+              <i id="eye-icon" class="fi fi-tr-eye" style="font-size:13px;"></i>
+            </button>
+          </div>
+        </div>
+        <button id="login-btn" onclick="doLogin()" class="btn btn-primary" style="width:100%;height:var(--gamb-height-control-lg);font-size:.875rem;margin-top:.25rem;">
+          <span class="spinner"></span>
+          <span class="btn-label" style="display:flex;align-items:center;gap:.5rem;">
+            <i class="fi fi-tr-sign-in-alt" style="font-size:14px;"></i> Entrar no sistema
+          </span>
+        </button>
+      </div>
+      <p style="text-align:center;font-size:.68rem;color:var(--gamb-text-light);margin:.9rem 0 0;">PriceBot MVP v1.0.0-alpha</p>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div style="display:flex;align-items:center;gap:.6rem;padding:1rem .9rem;border-bottom:1px solid var(--gamb-border);">
+      <div style="width:1.9rem;height:1.9rem;border-radius:var(--gamb-radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;background-image:var(--gamb-gradient-primary);">
+        <i class="fi fi-tr-search-dollar" style="font-size:12px;line-height:1;display:block;margin-top:1px;color:#fff;"></i>
+      </div>
+      <div>
+        <div style="font-family:var(--gamb-font-primary);font-weight:700;font-size:.82rem;color:var(--gamb-text);">PriceBot</div>
+        <div style="font-size:.62rem;color:var(--gamb-text-light);">iFood · Rappi · Mercado</div>
+      </div>
+    </div>
+    <nav style="flex:1;padding:.6rem .4rem;display:flex;flex-direction:column;gap:2px;overflow-y:auto;">
+      <p class="label" style="padding:.4rem .45rem .25rem;">Menu</p>
+      <button onclick="showPage('dashboard')" data-page="dashboard" class="nav-link active">
+        <i class="fi fi-tr-apps" style="font-size:14px;flex-shrink:0;"></i>Dashboard
+      </button>
+      <button onclick="showPage('agente')" data-page="agente" class="nav-link">
+        <i class="fi fi-tr-robot" style="font-size:14px;flex-shrink:0;"></i>Agente de Busca
+      </button>
+      <button onclick="showPage('plataformas')" data-page="plataformas" class="nav-link">
+        <i class="fi fi-tr-store-alt" style="font-size:14px;flex-shrink:0;"></i>Plataformas
+      </button>
+      <button onclick="showPage('historico')" data-page="historico" class="nav-link">
+        <i class="fi fi-tr-time-past" style="font-size:14px;flex-shrink:0;"></i>Historico
+      </button>
+      <p class="label" style="padding:.9rem .45rem .25rem;">Sistema</p>
+      <button class="nav-link"><i class="fi fi-tr-settings" style="font-size:14px;flex-shrink:0;"></i>Configuracoes</button>
+    </nav>
+    <div style="padding:.6rem .4rem;border-top:1px solid var(--gamb-border);">
+      <div style="display:flex;align-items:center;gap:.55rem;padding:.45rem .55rem;border-radius:var(--gamb-radius-lg);background:var(--gamb-background-muted);">
+        <div style="width:1.8rem;height:1.8rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--gamb-font-primary);font-weight:700;font-size:.7rem;color:var(--gamb-on-dark);flex-shrink:0;background-image:var(--gamb-gradient-secondary);">G</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.7rem;font-weight:600;color:var(--gamb-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">gamberini@gmail.com</div>
+          <div style="font-size:.62rem;color:var(--gamb-text-light);">Administrador</div>
+        </div>
+        <button onclick="doLogout()" class="btn btn-ghost btn-icon" title="Sair" style="width:1.8rem;height:1.8rem;">
+          <i class="fi fi-tr-sign-out-alt" style="font-size:12px;"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main style="margin-left:232px;flex:1;display:flex;flex-direction:column;min-height:100vh;">
+    <header id="topbar">
+      <div class="topbar-line"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.6rem;">
+        <div>
+          <h1 id="page-title" style="font-family:var(--gamb-font-primary);font-weight:700;font-size:1.1rem;color:var(--gamb-text);margin:0;">Dashboard</h1>
+          <p id="page-sub" style="font-size:.7rem;color:var(--gamb-text-light);margin:.15rem 0 0;">Visao geral do sistema</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:.7rem;">
+          <div id="agent-badge" class="badge badge-idle">
+            <span class="dot dot-idle"></span><span>Agente inativo</span>
+          </div>
+          <button class="btn btn-ghost btn-icon" style="position:relative;">
+            <i class="fi fi-tr-bell" style="font-size:14px;"></i>
+            <span style="position:absolute;top:.3rem;right:.3rem;width:6px;height:6px;border-radius:50%;background:var(--gamb-primary);border:2px solid var(--gamb-surface);"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div id="content" style="flex:1;padding:1.4rem 1.6rem;display:flex;flex-direction:column;gap:1.2rem;">
+
+      <!-- DASHBOARD PAGE -->
+      <div id="page-dashboard" class="page active">
+
+        <!-- Stats row -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem;" class="anim-0">
+          <div class="card" style="padding:1.1rem 1.25rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
+              <span class="label" style="margin:0;">Buscas hoje</span>
+              <div style="width:2rem;height:2rem;border-radius:var(--gamb-radius-md);display:flex;align-items:center;justify-content:center;background:color-mix(in oklab,var(--gamb-primary) 12%,transparent);">
+                <i class="fi fi-tr-search" style="font-size:13px;color:var(--gamb-primary);"></i>
+              </div>
+            </div>
+            <div style="font-family:var(--gamb-font-number);font-size:1.9rem;font-weight:700;color:var(--gamb-text);">0</div>
+            <div style="font-size:.68rem;color:var(--gamb-text-light);margin-top:.2rem;">nenhuma ainda</div>
+          </div>
+
+          <div class="card" style="padding:1.1rem 1.25rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
+              <span class="label" style="margin:0;">Plataformas</span>
+              <div style="width:2rem;height:2rem;border-radius:var(--gamb-radius-md);display:flex;align-items:center;justify-content:center;background:color-mix(in oklab,var(--gamb-secondary) 12%,transparent);">
+                <i class="fi fi-tr-store-alt" style="font-size:13px;color:var(--gamb-secondary);"></i>
+              </div>
+            </div>
+            <div style="font-family:var(--gamb-font-number);font-size:1.9rem;font-weight:700;color:var(--gamb-text);">1</div>
+            <div style="font-size:.68rem;color:var(--gamb-text-light);margin-top:.2rem;">iFood ativo</div>
+          </div>
+
+          <div class="card" style="padding:1.1rem 1.25rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
+              <span class="label" style="margin:0;">Itens coletados</span>
+              <div style="width:2rem;height:2rem;border-radius:var(--gamb-radius-md);display:flex;align-items:center;justify-content:center;background:color-mix(in oklab,var(--gamb-success) 12%,transparent);">
+                <i class="fi fi-tr-database" style="font-size:13px;color:var(--gamb-success);"></i>
+              </div>
+            </div>
+            <div style="font-family:var(--gamb-font-number);font-size:1.9rem;font-weight:700;color:var(--gamb-text);">0</div>
+            <div style="font-size:.68rem;color:var(--gamb-text-light);margin-top:.2rem;">aguardando busca</div>
+          </div>
+
+          <div class="card" style="padding:1.1rem 1.25rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
+              <span class="label" style="margin:0;">API Status</span>
+              <div style="width:2rem;height:2rem;border-radius:var(--gamb-radius-md);display:flex;align-items:center;justify-content:center;background:color-mix(in oklab,var(--gamb-warning) 12%,transparent);">
+                <i class="fi fi-tr-pulse" style="font-size:13px;color:var(--gamb-warning);"></i>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.45rem;">
+              <span class="dot dot-idle"></span>
+              <span style="font-family:var(--gamb-font-primary);font-weight:700;font-size:.8rem;color:var(--gamb-text-light);">Offline</span>
+            </div>
+            <div style="font-size:.68rem;color:var(--gamb-text-light);margin-top:.2rem;">servidor local</div>
+          </div>
+        </div>
+
+        <!-- Grid 2 cols -->
+        <div style="display:grid;grid-template-columns:3fr 2fr;gap:.9rem;">
+
+          <!-- Busca Rapida -->
+          <div class="card anim-1" style="padding:1.4rem 1.5rem;">
+            <h2 style="font-family:var(--gamb-font-primary);font-weight:700;font-size:.88rem;color:var(--gamb-text);margin:0 0 1.1rem;display:flex;align-items:center;gap:.45rem;">
+              <i class="fi fi-tr-rocket" style="font-size:14px;color:var(--gamb-primary);"></i> Busca Rapida
+            </h2>
+            <div style="display:flex;flex-direction:column;gap:.85rem;">
+              <div>
+                <label class="label">Instrucao de Busca</label>
+                <textarea id="inp-instrucao" rows="3" class="field" placeholder="Ex: Busque pizza grande de frango com catupiry no iFood, do mais barato ao mais caro."></textarea>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem;">
+                <div>
+                  <label class="label">CEP</label>
+                  <div style="position:relative;">
+                    <i class="fi fi-tr-marker" style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);font-size:12px;color:var(--gamb-text-light);pointer-events:none;"></i>
+                    <input id="inp-cep" type="text" placeholder="00000-000" maxlength="9" class="field" style="padding-left:2.4rem;">
+                  </div>
+                </div>
+                <div>
+                  <label class="label">Plataforma</label>
+                  <div style="position:relative;">
+                    <i class="fi fi-tr-store-alt" style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);font-size:12px;color:var(--gamb-text-light);pointer-events:none;"></i>
+                    <select id="inp-platform" class="field" style="padding-left:2.4rem;">
+                      <option value="ifood">Hamburger iFood</option>
+                      <option value="rappi" disabled>Rappi (em breve)</option>
+                      <option value="mercado" disabled>Mercado Livre (em breve)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <button id="activate-btn" onclick="activateAgent()" class="btn btn-primary" style="width:100%;height:var(--gamb-height-control-lg);font-size:.875rem;">
+                <span class="spinner"></span>
+                <span class="btn-label" style="display:flex;align-items:center;gap:.5rem;">
+                  <i class="fi fi-tr-play-circle" style="font-size:15px;"></i> Ativar Agente
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Plataformas panel -->
+          <div class="card anim-2" style="padding:1.4rem 1.5rem;">
+            <h2 style="font-family:var(--gamb-font-primary);font-weight:700;font-size:.88rem;color:var(--gamb-text);margin:0 0 1.1rem;display:flex;align-items:center;gap:.45rem;">
+              <i class="fi fi-tr-store-alt" style="font-size:14px;color:var(--gamb-secondary);"></i> Plataformas
+            </h2>
+            <div style="display:flex;flex-direction:column;gap:.45rem;">
+              <div style="display:flex;align-items:center;gap:.6rem;padding:.65rem .7rem;border-radius:var(--gamb-radius-lg);background:var(--gamb-background-muted);border:1px solid var(--gamb-border);">
+                <div style="width:2rem;height:2rem;border-radius:var(--gamb-radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;background:color-mix(in oklab,var(--gamb-primary) 10%,transparent);">H</div>
+                <div style="flex:1;min-width:0;"><div style="font-size:.78rem;font-weight:600;color:var(--gamb-text);">iFood</div><div style="font-size:.65rem;color:var(--gamb-text-light);">ifood.com.br</div></div>
+                <span class="dot dot-ok"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:.6rem;padding:.65rem .7rem;border-radius:var(--gamb-radius-lg);background:var(--gamb-background-muted);border:1px solid var(--gamb-border);opacity:.38;">
+                <div style="width:2rem;height:2rem;border-radius:var(--gamb-radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;">M</div>
+                <div style="flex:1;min-width:0;"><div style="font-size:.78rem;font-weight:600;color:var(--gamb-text);">Rappi</div><div style="font-size:.65rem;color:var(--gamb-text-light);">em breve</div></div>
+                <i class="fi fi-tr-lock" style="font-size:11px;color:var(--gamb-text-light);"></i>
+              </div>
+              <div style="display:flex;align-items:center;gap:.6rem;padding:.65rem .7rem;border-radius:var(--gamb-radius-lg);background:var(--gamb-background-muted);border:1px solid var(--gamb-border);opacity:.38;">
+                <div style="width:2rem;height:2rem;border-radius:var(--gamb-radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;">S</div>
+                <div style="flex:1;min-width:0;"><div style="font-size:.78rem;font-weight:600;color:var(--gamb-text);">Mercado Livre</div><div style="font-size:.65rem;color:var(--gamb-text-light);">em breve</div></div>
+                <i class="fi fi-tr-lock" style="font-size:11px;color:var(--gamb-text-light);"></i>
+              </div>
+            </div>
+            <div style="margin-top:.9rem;padding-top:.85rem;border-top:1px solid var(--gamb-border);">
+              <p class="label">Nova plataforma</p>
+              <div style="display:flex;gap:.45rem;">
+                <input type="text" placeholder="Nome..." class="field" style="flex:1;font-size:.76rem;">
+                <button class="btn btn-ghost btn-icon"><i class="fi fi-tr-plus" style="font-size:12px;"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div class="card anim-3">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.4rem;border-bottom:1px solid var(--gamb-border);">
+            <h2 style="font-family:var(--gamb-font-primary);font-weight:700;font-size:.88rem;color:var(--gamb-text);margin:0;display:flex;align-items:center;gap:.45rem;">
+              <i class="fi fi-tr-table-list" style="font-size:14px;color:var(--gamb-success);"></i> Resultados da Busca
+            </h2>
+            <button class="btn btn-ghost" style="font-size:.72rem;height:var(--gamb-height-control-sm);">
+              <i class="fi fi-tr-download" style="font-size:11px;"></i> Exportar CSV
+            </button>
+          </div>
+          <div id="empty-state" class="empty-state">
+            <div class="empty-icon" style="color:color-mix(in oklab,var(--gamb-primary) 45%,transparent);">
+              <i class="fi fi-tr-robot" style="font-size:20px;"></i>
+            </div>
+            <p style="font-weight:600;color:var(--gamb-text-muted);font-size:.82rem;margin:0;">Nenhuma busca realizada</p>
+            <p style="font-size:.72rem;color:var(--gamb-text-light);margin:0;">Configure uma instrucao e ative o agente.</p>
+          </div>
+          <div id="results-wrap" style="display:none;overflow-x:auto;padding:.4rem 0;">
+            <table class="data-table">
+              <thead><tr>
+                <th>Produto</th><th>Estabelecimento</th><th>Preco</th><th>Entrega</th><th>Tempo</th><th>Plataforma</th>
+              </tr></thead>
+              <tbody id="results-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /page-dashboard -->
+
+      <!-- AGENTE PAGE -->
+      <div id="page-agente" class="page">
+        <div class="card anim-0" style="min-height:20rem;display:flex;align-items:center;justify-content:center;">
+          <div class="empty-state">
+            <div class="empty-icon" style="color:color-mix(in oklab,var(--gamb-primary) 45%,transparent);"><i class="fi fi-tr-robot" style="font-size:20px;"></i></div>
+            <p style="font-weight:700;font-family:var(--gamb-font-primary);font-size:.95rem;color:var(--gamb-text);margin:0;">Configuracao do Agente</p>
+            <p style="font-size:.78rem;color:var(--gamb-text-light);max-width:21rem;margin:0;text-align:center;">Configuracao detalhada do comportamento do agente Playwright. Em desenvolvimento.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLATAFORMAS PAGE -->
+      <div id="page-plataformas" class="page">
+        <div class="card anim-0" style="min-height:20rem;display:flex;align-items:center;justify-content:center;">
+          <div class="empty-state">
+            <div class="empty-icon" style="color:color-mix(in oklab,var(--gamb-secondary) 45%,transparent);"><i class="fi fi-tr-store-alt" style="font-size:20px;"></i></div>
+            <p style="font-weight:700;font-family:var(--gamb-font-primary);font-size:.95rem;color:var(--gamb-text);margin:0;">Gerenciar Plataformas</p>
+            <p style="font-size:.78rem;color:var(--gamb-text-light);max-width:21rem;margin:0;text-align:center;">iFood ativo. Rappi e Mercado Livre em breve.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORICO PAGE -->
+      <div id="page-historico" class="page">
+        <div class="card anim-0" style="min-height:20rem;display:flex;align-items:center;justify-content:center;">
+          <div class="empty-state">
+            <div class="empty-icon" style="color:color-mix(in oklab,var(--gamb-warning) 45%,transparent);"><i class="fi fi-tr-time-past" style="font-size:20px;"></i></div>
+            <p style="font-weight:700;font-family:var(--gamb-font-primary);font-size:.95rem;color:var(--gamb-text);margin:0;">Historico de Buscas</p>
+            <p style="font-size:.78rem;color:var(--gamb-text-light);margin:0;text-align:center;">Todas as buscas realizadas aparecerão aqui.</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div><!-- /app -->
+
+<script>
+const API_URL = 'http://localhost:8000';
+let token = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const cep = document.getElementById('inp-cep');
+  if (cep) cep.addEventListener('input', e => {
+    let v = e.target.value.replace(/\D/g,'').slice(0,8);
+    if (v.length > 5) v = v.slice(0,5) + '-' + v.slice(5);
+    e.target.value = v;
+  });
+});
+
+function togglePass() {
+  const i = document.getElementById('inp-pass');
+  const ico = document.getElementById('eye-icon');
+  i.type = i.type === 'password' ? 'text' : 'password';
+  ico.className = i.type === 'password' ? 'fi fi-tr-eye' : 'fi fi-tr-eye-crossed';
+}
+
+async function doLogin() {
+  const btn   = document.getElementById('login-btn');
+  const err   = document.getElementById('login-error');
+  const email = document.getElementById('inp-email').value.trim();
+  const pass  = document.getElementById('inp-pass').value.trim();
+  btn.classList.add('loading');
+  err.style.display = 'none';
+  try {
+    const res = await fetch(`${API_URL}/login`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password: pass }),
+    });
+    if (res.ok) { const d = await res.json(); token = d.access_token; showApp(); }
+    else throw new Error();
+  } catch {
+    if (email === 'gamberini@gmail.com' && pass === 'passa ai um dois tres quatro') {
+      token = 'prototype-token'; showApp();
+    } else {
+      err.style.display = 'flex';
+    }
+  } finally { btn.classList.remove('loading'); }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-page').style.display !== 'none'
+      && !document.getElementById('login-page').classList.contains('hidden')) {
+    doLogin();
+  }
+});
+
+function showApp() {
+  document.getElementById('login-page').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+}
+
+function doLogout() {
+  token = null;
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('login-page').classList.remove('hidden');
+}
+
+const pageMeta = {
+  dashboard:   ['Dashboard',      'Visao geral do sistema'],
+  agente:      ['Agente de Busca','Configuracao e execucao do robo'],
+  plataformas: ['Plataformas',    'Gerenciar fontes de busca'],
+  historico:   ['Historico',      'Todas as buscas realizadas'],
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+  const pg = document.getElementById('page-' + id);
+  if (pg) pg.classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(n => { if (n.dataset.page === id) n.classList.add('active'); });
+  const [t, s] = pageMeta[id] || [];
+  document.getElementById('page-title').textContent = t || '';
+  document.getElementById('page-sub').textContent   = s || '';
+}
+
+async function activateAgent() {
+  const btn       = document.getElementById('activate-btn');
+  const badge     = document.getElementById('agent-badge');
+  const instrucao = document.getElementById('inp-instrucao').value.trim();
+  const cep       = document.getElementById('inp-cep').value.trim();
+  const platform  = document.getElementById('inp-platform').value;
+  if (!instrucao) { alert('Informe uma instrucao de busca.'); return; }
+  if (!cep)       { alert('Informe o CEP.'); return; }
+  btn.classList.add('loading'); btn.disabled = true;
+  badge.className = 'badge badge-running';
+  badge.innerHTML = '<span class="dot dot-running"></span><span>Agente em execucao...</span>';
+  try {
+    const res = await fetch(`${API_URL}/search`, {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({ instruction: instrucao, cep, platform }),
+    });
+    if (res.ok) { const d = await res.json(); renderResults(d.results); }
+    else throw new Error();
+  } catch {
+    await new Promise(r => setTimeout(r, 2200));
+    renderResults([
+      { product:'Pizza Grande Frango c/ Catupiry', establishment:'Bom Sabor Pizzaria', price:'R$ 52,90', delivery_fee:'Gratis',  estimated_time:'35-45 min', platform:'iFood' },
+      { product:'Pizza Frango Catupiry 35cm',       establishment:'Di Napoli Express',  price:'R$ 57,90', delivery_fee:'R$ 4,99', estimated_time:'40-55 min', platform:'iFood' },
+      { product:'Pizza Frango Cheddar G',            establishment:'Forneria 101',       price:'R$ 61,00', delivery_fee:'R$ 6,00', estimated_time:'30-40 min', platform:'iFood' },
+    ]);
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+    badge.className = 'badge badge-ok';
+    badge.innerHTML = '<span class="dot dot-ok"></span><span>Busca concluida</span>';
+  }
+}
+
+function renderResults(rows) {
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('results-wrap').style.display = 'block';
+  document.getElementById('results-body').innerHTML = rows.map(r => `
+    <tr>
+      <td style="color:var(--gamb-text);font-weight:500;">${r.product}</td>
+      <td>${r.establishment}</td>
+      <td><span style="font-family:var(--gamb-font-number);font-weight:700;font-size:.88rem;color:var(--gamb-primary);">${r.price}</span></td>
+      <td>${r.delivery_fee}</td>
+      <td>${r.estimated_time}</td>
+      <td><span class="plat-badge">${r.platform}</span></td>
+    </tr>
+  `).join('');
+}
+</script>
+</body>
+</html>

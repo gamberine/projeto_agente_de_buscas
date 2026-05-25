@@ -1,0 +1,18 @@
+# API
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.12
+
+# Auth
+pyjwt==2.10.1
+passlib[bcrypt]==1.7.4
+
+# Bot / Scraping
+playwright==1.49.0
+
+# Data
+pandas==2.2.3
+python-dotenv==1.0.1
+
+# Utils
+httpx==0.28.0
