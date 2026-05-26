@@ -516,7 +516,7 @@ async function doLogin() {
     if (res.ok) { const d = await res.json(); token = d.access_token; showApp(); }
     else throw new Error();
   } catch {
-    if (email === 'gamberini@gmail.com' && pass === 'passa ai um dois tres quatro') {
+    if (email.toLowerCase() === 'gamberini@gmail.com' && pass === 'passa ai um dois tres quatro') {
       token = 'prototype-token'; showApp();
     } else {
       err.style.display = 'flex';
