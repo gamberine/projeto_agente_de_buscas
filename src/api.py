@@ -6,12 +6,14 @@ Rotas: /login  /search  /health
 import os
 import asyncio
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Optional
 
 import jwt
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -20,12 +22,13 @@ from src.agent import PriceBotAgent
 load_dotenv()
 
 # ─── Config ─────────────────────────────────────────────────────────────────
-APP_USER_EMAIL     = os.getenv("APP_USER_EMAIL", "gamberini@gmail.com")
-APP_USER_PASS      = os.getenv("APP_USER_PASS",  "passa ai um dois tres quatro")
+APP_USER_EMAIL     = os.getenv("APP_USER_EMAIL", "gamberine@gmail.com")
+APP_USER_PASS      = os.getenv("APP_USER_PASS",  "1234")
 JWT_SECRET         = os.getenv("JWT_SECRET",     "dev-secret-change-me")
 JWT_ALGORITHM      = os.getenv("JWT_ALGORITHM",  "HS256")
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))
 CORS_ORIGINS       = os.getenv("CORS_ORIGINS",   "*").split(",")
+PUBLIC_DIR         = Path(__file__).resolve().parent.parent / "public"
 
 # ─── App ────────────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -155,3 +158,7 @@ async def search(
         total=len(raw_results),
         duration_ms=duration_ms,
     )
+
+
+# Montado por ultimo para preservar as rotas da API e da documentacao.
+app.mount("/", StaticFiles(directory=PUBLIC_DIR, html=True), name="frontend")

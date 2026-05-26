@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PriceBot — Buscador de Precos</title>
+  <title>Gamb - Buscador de Preços</title>
 
   <!-- Gamb Design System (variaveis definitivas) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/gamberine/.gamb_variaveis@v1.0.1/dist/gamb-design-system.min.css">
@@ -482,7 +482,7 @@
 </div><!-- /app -->
 
 <script>
-const API_URL = 'http://localhost:8000';
+const API_URL = window.location.origin;
 let token = null;
 
 document.addEventListener('DOMContentLoaded', () => {
