@@ -197,7 +197,7 @@
           <label class="label">E-mail</label>
           <div style="position:relative;">
             <i class="fi fi-tr-envelope" style="position:absolute;left:.9rem;top:50%;transform:translateY(-50%);font-size:13px;color:var(--gamb-text-light);pointer-events:none;"></i>
-            <input id="inp-email" type="email" placeholder="seu@email.com" class="field" style="padding-left:2.5rem;" value="gamberini@gmail.com">
+            <input id="inp-email" type="email" placeholder="seu@email.com" class="field" style="padding-left:2.5rem;" value="gamberine@gmail.com">
           </div>
         </div>
         <div>
@@ -256,7 +256,7 @@
       <div style="display:flex;align-items:center;gap:.55rem;padding:.45rem .55rem;border-radius:var(--gamb-radius-lg);background:var(--gamb-background-muted);">
         <div style="width:1.8rem;height:1.8rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--gamb-font-primary);font-weight:700;font-size:.7rem;color:var(--gamb-on-dark);flex-shrink:0;background-image:var(--gamb-gradient-secondary);">G</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:.7rem;font-weight:600;color:var(--gamb-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">gamberini@gmail.com</div>
+          <div style="font-size:.7rem;font-weight:600;color:var(--gamb-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">gamberine@gmail.com</div>
           <div style="font-size:.62rem;color:var(--gamb-text-light);">Administrador</div>
         </div>
         <button onclick="doLogout()" class="btn btn-ghost btn-icon" title="Sair" style="width:1.8rem;height:1.8rem;">
@@ -516,7 +516,7 @@ async function doLogin() {
     if (res.ok) { const d = await res.json(); token = d.access_token; showApp(); }
     else throw new Error();
   } catch {
-    if (email === 'gamberini@gmail.com' && pass === 'passa ai um dois tres quatro') {
+    if (email.toLowerCase() === 'gamberine@gmail.com' && pass === '1234') {
       token = 'prototype-token'; showApp();
     } else {
       err.style.display = 'flex';
