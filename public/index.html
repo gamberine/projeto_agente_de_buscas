@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PriceBot — Buscador de Precos</title>
+  <title>Gamb - Buscador de Preços</title>
 
   <!-- Gamb Design System (variaveis definitivas) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/gamberine/.gamb_variaveis@v1.0.1/dist/gamb-design-system.min.css">
@@ -171,30 +171,6 @@
     .empty-icon { width:3.2rem; height:3.2rem; border-radius:var(--gamb-radius-xl); display:flex; align-items:center; justify-content:center; border:1px dashed var(--gamb-border); background:color-mix(in oklab,var(--gamb-primary) 5%,transparent); }
 
     .plat-badge { display:inline-flex; align-items:center; gap:.3rem; padding:.18rem .55rem; border-radius:var(--gamb-radius-pill); font-size:.66rem; font-weight:600; background:color-mix(in oklab,var(--gamb-primary) 12%,transparent); color:var(--gamb-primary); border:1px solid color-mix(in oklab,var(--gamb-primary) 25%,transparent); }
-
-    /* ─── Toast ──────────────── */
-    #toast {
-      position:fixed; bottom:1.5rem; right:1.5rem; z-index:999;
-      padding:.75rem 1.2rem; border-radius:var(--gamb-radius-lg);
-      font-size:.8rem; font-weight:600; font-family:var(--gamb-font-secondary);
-      display:flex; align-items:center; gap:.55rem;
-      box-shadow: 0 8px 32px rgba(0,0,0,.45);
-      transform: translateY(8px); opacity:0;
-      transition: all .25s ease; pointer-events:none;
-    }
-    #toast.show { transform: translateY(0); opacity:1; }
-    #toast.toast-ok   { background:var(--gamb-success); color:#fff; }
-    #toast.toast-warn { background:var(--gamb-warning); color:#000; }
-    #toast.toast-info { background:var(--gamb-primary);  color:#fff; }
-
-    /* ─── Demo banner ─────────── */
-    #demo-banner {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:.55rem 1.6rem; font-size:.72rem;
-      background:color-mix(in oklab, var(--gamb-warning) 12%, transparent);
-      border-bottom:1px solid color-mix(in oklab, var(--gamb-warning) 25%, transparent);
-      color:var(--gamb-warning);
-    }
   </style>
 </head>
 <body>
@@ -247,16 +223,6 @@
 </div>
 
 <!-- APP -->
-
-<!-- Demo banner -->
-<div id="demo-banner">
-  <span style="display:flex;align-items:center;gap:.5rem;">
-    <i class="fi fi-tr-info" style="font-size:13px;flex-shrink:0;"></i>
-    <strong>Modo demonstração</strong> &nbsp;— API local não conectada. O agente roda em modo simulado. Para ativar o bot real: rode <code style="background:rgba(0,0,0,.2);padding:.1rem .4rem;border-radius:4px;">uvicorn src.api:app --reload --port 8000</code> localmente.
-  </span>
-  <button onclick="this.parentElement.style.display='none'" style="background:none;border:none;cursor:pointer;color:inherit;font-size:1rem;line-height:1;opacity:.7;">✕</button>
-</div>
-
 <div id="app">
   <!-- Sidebar -->
   <aside id="sidebar">
@@ -456,7 +422,7 @@
             <h2 style="font-family:var(--gamb-font-primary);font-weight:700;font-size:.88rem;color:var(--gamb-text);margin:0;display:flex;align-items:center;gap:.45rem;">
               <i class="fi fi-tr-table-list" style="font-size:14px;color:var(--gamb-success);"></i> Resultados da Busca
             </h2>
-            <button onclick="exportCSV()" class="btn btn-ghost" style="font-size:.72rem;height:var(--gamb-height-control-sm);">
+            <button class="btn btn-ghost" style="font-size:.72rem;height:var(--gamb-height-control-sm);">
               <i class="fi fi-tr-download" style="font-size:11px;"></i> Exportar CSV
             </button>
           </div>
@@ -516,51 +482,10 @@
 </div><!-- /app -->
 
 <script>
-const API_URL = 'http://localhost:8000';
-
-/* ── Toast ── */
-let _toastTimer = null;
-function showToast(msg, type='info', duration=3000) {
-  const t = document.getElementById('toast');
-  t.className = 'toast show toast-' + type;
-  t.innerHTML = '<i class="fi fi-tr-' + (type==='ok'?'check-circle':type==='warn'?'triangle-warning':'info') + '" style="font-size:14px;flex-shrink:0;"></i> ' + msg;
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => { t.className = 'toast'; }, duration);
-}
-
-/* ── API health check ── */
-async function checkAPI() {
-  try {
-    const r = await fetch(API_URL + '/health', { signal: AbortSignal.timeout(1500) });
-    if (r.ok) {
-      document.getElementById('demo-banner').style.display = 'none';
-      document.querySelector('#page-dashboard .dot-idle').className = 'dot dot-ok';
-      document.querySelector('#page-dashboard .dot-idle + span') && null;
-    }
-  } catch { /* API offline — modo demo */ }
-}
-
-/* ── Export CSV ── */
-function exportCSV() {
-  const rows = document.querySelectorAll('#results-body tr');
-  if (!rows.length) { showToast('Nenhum resultado para exportar.', 'warn'); return; }
-  const headers = ['Produto','Estabelecimento','Preco','Entrega','Tempo','Plataforma'];
-  const lines = [headers.join(';')];
-  rows.forEach(tr => {
-    const cols = [...tr.querySelectorAll('td')].map(td => '"' + td.innerText.trim().replace(/"/g,'""') + '"');
-    lines.push(cols.join(';'));
-  });
-  const blob = new Blob([lines.join('\n')], { type:'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = 'pricebot_resultados_' + new Date().toISOString().slice(0,10) + '.csv';
-  a.click(); URL.revokeObjectURL(url);
-  showToast('CSV exportado com sucesso!', 'ok');
-}
+const API_URL = window.location.origin;
 let token = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  checkAPI();
   const cep = document.getElementById('inp-cep');
   if (cep) cep.addEventListener('input', e => {
     let v = e.target.value.replace(/\D/g,'').slice(0,8);
@@ -588,11 +513,11 @@ async function doLogin() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ email, password: pass }),
     });
-    if (res.ok) { const d = await res.json(); token = d.access_token; showApp(); showToast('Login realizado!', 'ok'); }
+    if (res.ok) { const d = await res.json(); token = d.access_token; showApp(); }
     else throw new Error();
   } catch {
     if (email.toLowerCase() === 'gamberine@gmail.com' && pass === '1234') {
-      token = 'prototype-token'; showApp(); showToast('Login realizado — modo demo', 'info');
+      token = 'prototype-token'; showApp();
     } else {
       err.style.display = 'flex';
     }
@@ -664,7 +589,6 @@ async function activateAgent() {
     btn.classList.remove('loading'); btn.disabled = false;
     badge.className = 'badge badge-ok';
     badge.innerHTML = '<span class="dot dot-ok"></span><span>Busca concluida</span>';
-    showToast('Busca concluída — ' + document.querySelectorAll('#results-body tr').length + ' resultados encontrados', 'ok', 4000);
   }
 }
 
@@ -683,9 +607,5 @@ function renderResults(rows) {
   `).join('');
 }
 </script>
-
-<!-- Toast -->
-<div id="toast"></div>
-
 </body>
 </html>

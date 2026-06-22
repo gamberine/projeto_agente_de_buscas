@@ -49,20 +49,28 @@ cp .env.example .env
 # Edite o .env com suas configurações
 ```
 
-### 4. Rodar a API
+### 4. Iniciar a aplicação
+
+No Windows, use o atalho de inicialização:
+```powershell
+.\start.bat
+```
+
+O comando sobe a API e a interface no mesmo servidor e abre
+`http://127.0.0.1:8000/` no navegador. Pressione `Ctrl+C` para encerrar.
+
+No macOS/Linux, execute:
 ```bash
 uvicorn src.api:app --reload --port 8000
 ```
 
-### 5. Abrir o front-end
-Abra `public/index.html` no navegador  
-*(ou sirva com `python -m http.server 3000` na raiz do projeto)*
+Depois, acesse `http://127.0.0.1:8000/`.
 
 ---
 
 ## 🔐 Credenciais de Teste (MVP)
-- **E-mail:** `gamberini@gmail.com`
-- **Senha:** `passa ai um dois tres quatro`
+- **E-mail:** `gamberine@gmail.com`
+- **Senha:** `1234`
 
 ---
 
