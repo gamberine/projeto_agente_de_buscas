@@ -1,0 +1,45 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'public/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Deploy public/index.html to gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Prepara pasta temporária
+          mkdir -p /tmp/deploy
+          cp public/index.html /tmp/deploy/index.html
+
+          # Muda para branch gh-pages
+          git checkout gh-pages || git checkout -b gh-pages
+
+          # Copia o index.html atualizado para a raiz
+          cp /tmp/deploy/index.html ./index.html
+
+          git add index.html
+          git diff --cached --quiet && echo "Nada a fazer." && exit 0
+
+          git commit -m "deploy: atualiza Pages via GitHub Actions [skip ci]"
+          git push origin gh-pages --force
+
+          echo "✅ Deploy concluído → https://gamberine.github.io/projeto_agente_de_buscas/"
